@@ -6,7 +6,8 @@ Just function signatures with TODOs.
 
 import sys
 import os
-
+import openai
+from pathlib import Path
 
 def read_python_file(filename):
     """TODO: Read Python file and return contents"""
@@ -23,7 +24,18 @@ def read_python_file(filename):
 
 def analyze_python_code(python_code):
     """TODO: Analyze Python code structure (functions, classes, imports)"""
-    pass
+    # Simple analysis - count functions, classes, imports
+    lines = python_code.split('\n')
+    functions = [line for line in lines if line.strip().startswith('def ')]
+    classes = [line for line in lines if line.strip().startswith('class ')]
+    imports = [line for line in lines if line.strip().startswith(('import ', 'from '))]
+    
+    return {
+        'functions': len(functions),
+        'classes': len(classes),
+        'imports': len(imports),
+        'total_lines': len(lines)
+    }
 
 
 def convert_to_cpp(python_code):
@@ -56,6 +68,7 @@ def main():
     print(f"Successfully read {len(python_code.splitlines())} lines of Python code")
     
     # TODO: Analyze code
+    
     # TODO: Convert to C++
     # TODO: Write output file
     pass
