@@ -109,23 +109,23 @@ def compile_cpp_code(cpp_code, output_file):
             compile_result = _run_gcc_compilation(temp_cpp_file, temp_dir)
             
             if compile_result.returncode == 0:
-                print("✅ C++ code compiled successfully!")
+                print("C++ code compiled successfully!")
                 return True, None
             else:
                 error_output = compile_result.stderr
-                print("❌ C++ compilation failed!")
+                print("C++ compilation failed!")
                 print("Compilation errors:")
                 print(error_output)
                 return False, error_output
                 
     except subprocess.TimeoutExpired:
-        print("❌ Compilation timed out")
+        print("Compilation timed out")
         return False, "Compilation timed out after 30 seconds"
     except FileNotFoundError:
-        print("❌ g++ not found - install g++ to compile C++ code")
+        print("g++ not found - install g++ to compile C++ code")
         return False, "g++ compiler not found"
     except Exception as e:
-        print(f"❌ Compilation error: {e}")
+        print(f"Compilation error: {e}")
         return False, str(e)
 
 
@@ -168,7 +168,7 @@ def main():
     compilation_success, compilation_errors = compile_cpp_code(cpp_code, output_file)
     
     if not compilation_success:
-        print("❌ Compilation validation failed. Not saving invalid C++ code.")
+        print("Compilation validation failed. Not saving invalid C++ code.")
         print("Please review the compilation errors above.")
         sys.exit(1)
     
@@ -176,7 +176,7 @@ def main():
     input_path = Path(python_file)
     output_file = input_path.stem + ".cpp"
     if write_cpp_file(cpp_code, output_file):
-        print(f"✅ Translation complete! Output saved to: {output_file}")
+        print(f"Translation complete! Output saved to: {output_file}")
     else:
         print("Failed to write output file.")
         sys.exit(1)
