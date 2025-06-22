@@ -7,6 +7,8 @@ Just function signatures with TODOs.
 import sys
 import os
 import anthropic
+import subprocess
+import tempfile
 from pathlib import Path
 
 input_file="input.py"
@@ -84,6 +86,49 @@ def write_cpp_file(cpp_code, output_file):
         return False
 
 
+def _write_temp_cpp_file(cpp_code, temp_dir):
+    temp_cpp_file = os.path.join(temp_dir, "temp_code.cpp")
+    with open(temp_cpp_file, 'w', encoding='utf-8') as f:
+        f.write(cpp_code)
+    return temp_cpp_file
+
+def _run_gcc_compilation(temp_cpp_file, temp_dir):
+    output_path = os.path.join(temp_dir, 'output')
+    return subprocess.run(
+        ['g++', '-std=c++17', '-o', output_path, temp_cpp_file],
+        capture_output=True,
+        text=True,
+        timeout=30
+    )
+
+def compile_cpp_code(cpp_code, output_file):
+    """Compile C++ code using g++ and validate it builds successfully"""
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_cpp_file = _write_temp_cpp_file(cpp_code, temp_dir)
+            compile_result = _run_gcc_compilation(temp_cpp_file, temp_dir)
+            
+            if compile_result.returncode == 0:
+                print("C++ code compiled successfully!")
+                return True, None
+            else:
+                error_output = compile_result.stderr
+                print(" C++ compilation failed!")
+                print("Compilation errors:")
+                print(error_output)
+                return False, error_output
+                
+    except subprocess.TimeoutExpired:
+        print("Compilation timed out")
+        return False, "Compilation timed out after 30 seconds"
+    except FileNotFoundError:
+        print("" g++ not found - install g++ to compile C++ code")
+        return False, "g++ compiler not found"
+    except Exception as e:
+        print(f"Compilation error: {e}")
+        return False, str(e)
+
+
 def main():
     """TODO: Main I/O flow"""
     # Step 1: Get input file from command line
@@ -118,7 +163,16 @@ def main():
     
     print("C++ code generated successfully!")
     
-    # Step 5: Write output file
+    # Step 5: Validate compilation
+    print("Validating C++ compilation...")
+    compilation_success, compilation_errors = compile_cpp_code(cpp_code, output_file)
+    
+    if not compilation_success:
+        print("Compilation validation failed. Not saving invalid C++ code.")
+        print("Please review the compilation errors above.")
+        sys.exit(1)
+    
+    # Step 6: Write output file (only if compilation succeeded)
     input_path = Path(python_file)
     output_file = input_path.stem + ".cpp"
     if write_cpp_file(cpp_code, output_file):
