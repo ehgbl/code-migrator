@@ -6,7 +6,7 @@ Just function signatures with TODOs.
 
 import sys
 import os
-import openai
+import anthropic
 from pathlib import Path
 
 def read_python_file(filename):
@@ -42,7 +42,7 @@ def convert_to_cpp(python_code, context=""):
     """TODO: Convert Python code to C++"""
     try:
         
-        client = openai.OpenAI()
+        client = anthropic.Anthropic()
         
         prompt = f"""
 Please translate the following Python code to C++.
@@ -55,16 +55,15 @@ Python Code:
 Please provide only the C++ code without any explanations or markdown formatting.
 """
         
-        response = client.chat.completions.create(
-            model="gpt-4",
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=4000,
             messages=[
-                {"role": "system", "content": "You are a Python to C++ translator. Provide clean, compilable C++ code."},
                 {"role": "user", "content": prompt}
-            ],
-            temperature=0.1
+            ]
         )
         
-        return response.choices[0].message.content.strip()
+        return response.content[0].text.strip()
         
     except Exception as e:
         print(f"Error calling API: {e}")
