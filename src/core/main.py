@@ -38,9 +38,37 @@ def analyze_python_code(python_code):
     }
 
 
-def convert_to_cpp(python_code):
+def convert_to_cpp(python_code, context=""):
     """TODO: Convert Python code to C++"""
-    pass
+    try:
+        
+        client = openai.OpenAI()
+        
+        prompt = f"""
+Please translate the following Python code to C++.
+
+Context: {context}
+
+Python Code:
+{python_code}
+
+Please provide only the C++ code without any explanations or markdown formatting.
+"""
+        
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a Python to C++ translator. Provide clean, compilable C++ code."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
+        )
+        
+        return response.choices[0].message.content.strip()
+        
+    except Exception as e:
+        print(f"Error calling API: {e}")
+        return None
 
 
 def write_cpp_file(cpp_code, output_filename):
