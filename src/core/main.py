@@ -9,13 +9,15 @@ import os
 import anthropic
 from pathlib import Path
 
-def read_python_file(filename):
-    """TODO: Read Python file and return contents"""
+input_file="input.py"
+output_file="output.cpp"
+def read_python_file(input_file):
+    """TODO: Read Python input_file and return contents"""
     try:
-        with open(filename, 'r', encoding='utf-8') as file:
-            return file.read()
+        with open(input_file, 'r', encoding='utf-8') as input_file:
+            return input_file.read()
     except FileNotFoundError:
-        print(f"Error: File '{filename}' not found")
+        print(f"Error: File '{file}' not found")
         return None
     except Exception as e:
         print(f"Error reading file: {e}")
@@ -70,20 +72,29 @@ Please provide only the C++ code without any explanations or markdown formatting
         return None
 
 
-def write_cpp_file(cpp_code, output_filename):
+def write_cpp_file(cpp_code, output_file):
     """TODO: Write C++ code to output file"""
-    pass
+    try:
+        with open(output_file, 'w', encoding='utf-8') as file:
+            file.write(cpp_code)
+        print(f"Successfully wrote C++ code to: {output_file}")
+        return True
+    except Exception as e:
+        print(f"Error writing file: {e}")
+        return False
 
 
 def main():
     """TODO: Main I/O flow"""
     # Step 1: Get input file from command line
     if len(sys.argv) < 2:
-        print("Usage: python main.py <python_file>")
-        print("Example: python main.py my_script.py")
+        print("Usage: python main.py <python_file> [context]")
+        print("Example: python main.py my_script.py 'This is a simple calculator'")
         sys.exit(1)
     
     python_file = sys.argv[1]
+    context = sys.argv[2] if len(sys.argv) > 2 else ""
+    
     print(f"Reading Python file: {python_file}")
     
     # Step 2: Read Python file
@@ -94,11 +105,27 @@ def main():
     
     print(f"Successfully read {len(python_code.splitlines())} lines of Python code")
     
-    # TODO: Analyze code
+    # Step 3: Analyze code
+    analysis = analyze_python_code(python_code)
+    print(f"Analysis: {analysis['functions']} functions, {analysis['classes']} classes, {analysis['imports']} imports")
     
-    # TODO: Convert to C++
-    # TODO: Write output file
-    pass
+    # Step 4: Convert to C++
+    print("Converting to C++...")
+    cpp_code = convert_to_cpp(python_code, context)
+    if cpp_code is None:
+        print("Failed to convert code. Exiting.")
+        sys.exit(1)
+    
+    print("C++ code generated successfully!")
+    
+    # Step 5: Write output file
+    input_path = Path(python_file)
+    output_file = input_path.stem + ".cpp"
+    if write_cpp_file(cpp_code, output_file):
+        print(f"Translation complete! Output saved to: {output_file}")
+    else:
+        print("Failed to write output file.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
