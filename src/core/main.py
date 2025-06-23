@@ -13,9 +13,6 @@ import openai
 
 from pathlib import Path
 
-input_file="input.py"
-output_file="output.cpp"
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Python to C++/Rust Code Migrator')
@@ -26,6 +23,7 @@ def parse_arguments():
     parser.add_argument('--context', '-c', help='Additional context for migration')
     
     return parser.parse_args()
+
 
 def get_output_path(input_file, target_language, user_output_path=None):
     if user_output_path:
@@ -39,12 +37,13 @@ def get_output_path(input_file, target_language, user_output_path=None):
     else:
         return input_path.stem + '.txt'
 
+
 def read_python_file(input_file):
     try:
-        with open(input_file, 'r', encoding='utf-8') as input_file:
-            return input_file.read()
+        with open(input_file, 'r', encoding='utf-8') as file:
+            return file.read()
     except FileNotFoundError:
-        print(f"Error: File '{file}' not found")
+        print(f"Error: File '{input_file}' not found")
         return None
     except Exception as e:
         print(f"Error reading file: {e}")
@@ -69,9 +68,6 @@ def convert_to_cpp(python_code, context=""):
     client = openai.OpenAI()
 
     try:
-        
-        
-        
         prompt = f"""
 Please translate the following Python code to C++.
 
@@ -86,7 +82,6 @@ Please provide only the C++ code without any explanations or markdown formatting
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                
                 {"role":"system","content":"You are a code migration assistant."},
                 {"role": "user", "content": prompt}
             ],
@@ -94,17 +89,17 @@ Please provide only the C++ code without any explanations or markdown formatting
             temperature=0.1
         )
         
-        result = response.choices[0].message.content.strip()
+        return response.choices[0].message.content.strip()
         
     except Exception as e:
         print(f"Error calling API: {e}")
         return None
 
-def convert_to_rust(python_code, context=""):
 
+def convert_to_rust(python_code, context=""):
     """Convert Python code to Rust"""
     try:
-        client=openai.OpenAI()
+        client = openai.OpenAI()
         prompt = f"""
 Please translate the following Python code to Rust.
 
@@ -133,11 +128,11 @@ Please provide only the Rust code without any explanations or markdown formattin
         return None
 
 
-def write_cpp_file(cpp_code, output_file):
+def write_output_file(code, output_file):
     try:
         with open(output_file, 'w', encoding='utf-8') as file:
-            file.write(cpp_code)
-        print(f"Successfully wrote C++ code to: {output_file}")
+            file.write(code)
+        print(f"Successfully wrote code to: {output_file}")
         return True
     except Exception as e:
         print(f"Error writing file: {e}")
@@ -150,6 +145,7 @@ def _write_temp_cpp_file(cpp_code, temp_dir):
         f.write(cpp_code)
     return temp_cpp_file
 
+
 def _run_gcc_compilation(temp_cpp_file, temp_dir):
     output_path = os.path.join(temp_dir, 'output')
     return subprocess.run(
@@ -158,6 +154,7 @@ def _run_gcc_compilation(temp_cpp_file, temp_dir):
         text=True,
         timeout=30
     )
+
 
 def compile_cpp_code(cpp_code, output_file):
     try:
@@ -170,7 +167,7 @@ def compile_cpp_code(cpp_code, output_file):
                 return True, None
             else:
                 error_output = compile_result.stderr
-                print(" C++ compilation failed!")
+                print("C++ compilation failed!")
                 print("Compilation errors:")
                 print(error_output)
                 return False, error_output
@@ -179,7 +176,7 @@ def compile_cpp_code(cpp_code, output_file):
         print("Compilation timed out")
         return False, "Compilation timed out after 30 seconds"
     except FileNotFoundError:
-        print(" g++ not found - install g++ to compile C++ code")
+        print("g++ not found - install g++ to compile C++ code")
         return False, "g++ compiler not found"
     except Exception as e:
         print(f"Compilation error: {e}")
@@ -187,13 +184,6 @@ def compile_cpp_code(cpp_code, output_file):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <python_file> [context]")
-        print("Example: python main.py my_script.py 'This is a simple calculator'")
-        sys.exit(1)
-    python_file = sys.argv[1]
-    context = sys.argv[2] if len(sys.argv) > 2 else ""
-    
     args = parse_arguments()
     
     python_file = args.input_file
@@ -239,7 +229,7 @@ def main():
             sys.exit(1)
     
     final_output_path = get_output_path(python_file, target_language, output_path)
-    if write_cpp_file(converted_code, final_output_path):
+    if write_output_file(converted_code, final_output_path):
         print(f"Translation complete! Output saved to: {final_output_path}")
     else:
         print("Failed to write output file.")
