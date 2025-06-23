@@ -101,9 +101,10 @@ Please provide only the C++ code without any explanations or markdown formatting
         return None
 
 def convert_to_rust(python_code, context=""):
+
     """Convert Python code to Rust"""
     try:
-        
+        client=openai.OpenAI()
         prompt = f"""
 Please translate the following Python code to Rust.
 
@@ -115,15 +116,17 @@ Python Code:
 Please provide only the Rust code without any explanations or markdown formatting.
 """
         
-        response = client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=4000,
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
+                {"role": "system", "content": "You are a code migration assistant."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=1500,
+            temperature=0.1
         )
         
-        return response.content[0].text.strip()
+        return response.choices[0].message.content.strip()
         
     except Exception as e:
         print(f"Error calling API: {e}")
