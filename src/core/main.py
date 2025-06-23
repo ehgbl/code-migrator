@@ -1,20 +1,45 @@
 #!/usr/bin/env python3
 """
 Python to C++ Migrator - Simple I/O Structure
-Just function signatures with TODOs.
+
 """
 
 import sys
 import os
-import anthropic
 import subprocess
 import tempfile
+import argparse
+import openai
+
 from pathlib import Path
 
 input_file="input.py"
 output_file="output.cpp"
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Python to C++/Rust Code Migrator')
+    parser.add_argument('input_file', help='Input Python file to migrate')
+    parser.add_argument('--target-language', '-t', default='cpp', 
+                       choices=['cpp', 'rust'], help='Target language (default: cpp)')
+    parser.add_argument('--output-path', '-o', help='Output file path (default: auto-generated)')
+    parser.add_argument('--context', '-c', help='Additional context for migration')
+    
+    return parser.parse_args()
+
+def get_output_path(input_file, target_language, user_output_path=None):
+    if user_output_path:
+        return user_output_path
+    
+    input_path = Path(input_file)
+    if target_language == 'cpp':
+        return input_path.stem + '.cpp'
+    elif target_language == 'rust':
+        return input_path.stem + '.rs'
+    else:
+        return input_path.stem + '.txt'
+
 def read_python_file(input_file):
-    """TODO: Read Python input_file and return contents"""
     try:
         with open(input_file, 'r', encoding='utf-8') as input_file:
             return input_file.read()
@@ -27,8 +52,6 @@ def read_python_file(input_file):
 
 
 def analyze_python_code(python_code):
-    """TODO: Analyze Python code structure (functions, classes, imports)"""
-    # Simple analysis - count functions, classes, imports
     lines = python_code.split('\n')
     functions = [line for line in lines if line.strip().startswith('def ')]
     classes = [line for line in lines if line.strip().startswith('class ')]
@@ -43,10 +66,11 @@ def analyze_python_code(python_code):
 
 
 def convert_to_cpp(python_code, context=""):
-    """TODO: Convert Python code to C++"""
+    client = openai.OpenAI()
+
     try:
         
-        client = anthropic.Anthropic()
+        
         
         prompt = f"""
 Please translate the following Python code to C++.
@@ -57,6 +81,38 @@ Python Code:
 {python_code}
 
 Please provide only the C++ code without any explanations or markdown formatting.
+"""
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                
+                {"role":"system","content":"You are a code migration assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=1000,
+            temperature=0.1
+        )
+        
+        result = response.choices[0].message.content.strip()
+        
+    except Exception as e:
+        print(f"Error calling API: {e}")
+        return None
+
+def convert_to_rust(python_code, context=""):
+    """Convert Python code to Rust"""
+    try:
+        
+        prompt = f"""
+Please translate the following Python code to Rust.
+
+Context: {context}
+
+Python Code:
+{python_code}
+
+Please provide only the Rust code without any explanations or markdown formatting.
 """
         
         response = client.messages.create(
@@ -75,7 +131,6 @@ Please provide only the C++ code without any explanations or markdown formatting
 
 
 def write_cpp_file(cpp_code, output_file):
-    """TODO: Write C++ code to output file"""
     try:
         with open(output_file, 'w', encoding='utf-8') as file:
             file.write(cpp_code)
@@ -102,7 +157,6 @@ def _run_gcc_compilation(temp_cpp_file, temp_dir):
     )
 
 def compile_cpp_code(cpp_code, output_file):
-    """Compile C++ code using g++ and validate it builds successfully"""
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_cpp_file = _write_temp_cpp_file(cpp_code, temp_dir)
@@ -122,7 +176,7 @@ def compile_cpp_code(cpp_code, output_file):
         print("Compilation timed out")
         return False, "Compilation timed out after 30 seconds"
     except FileNotFoundError:
-        print("" g++ not found - install g++ to compile C++ code")
+        print(" g++ not found - install g++ to compile C++ code")
         return False, "g++ compiler not found"
     except Exception as e:
         print(f"Compilation error: {e}")
@@ -130,19 +184,23 @@ def compile_cpp_code(cpp_code, output_file):
 
 
 def main():
-    """TODO: Main I/O flow"""
-    # Step 1: Get input file from command line
     if len(sys.argv) < 2:
         print("Usage: python main.py <python_file> [context]")
         print("Example: python main.py my_script.py 'This is a simple calculator'")
         sys.exit(1)
-    
     python_file = sys.argv[1]
     context = sys.argv[2] if len(sys.argv) > 2 else ""
     
-    print(f"Reading Python file: {python_file}")
+    args = parse_arguments()
     
-    # Step 2: Read Python file
+    python_file = args.input_file
+    target_language = args.target_language
+    output_path = args.output_path
+    context = args.context or ""
+    
+    print(f"Reading Python file: {python_file}")
+    print(f"Target language: {target_language}")
+    
     python_code = read_python_file(python_file)
     if python_code is None:
         print("Failed to read Python file. Exiting.")
@@ -150,33 +208,36 @@ def main():
     
     print(f"Successfully read {len(python_code.splitlines())} lines of Python code")
     
-    # Step 3: Analyze code
     analysis = analyze_python_code(python_code)
     print(f"Analysis: {analysis['functions']} functions, {analysis['classes']} classes, {analysis['imports']} imports")
     
-    # Step 4: Convert to C++
-    print("Converting to C++...")
-    cpp_code = convert_to_cpp(python_code, context)
-    if cpp_code is None:
+    print(f"Converting to {target_language.upper()}...")
+    if target_language == 'cpp':
+        converted_code = convert_to_cpp(python_code, context)
+    elif target_language == 'rust':
+        converted_code = convert_to_rust(python_code, context)
+    else:
+        print(f"Unsupported target language: {target_language}")
+        sys.exit(1)
+    
+    if converted_code is None:
         print("Failed to convert code. Exiting.")
         sys.exit(1)
     
-    print("C++ code generated successfully!")
+    print(f"{target_language.upper()} code generated successfully!")
     
-    # Step 5: Validate compilation
-    print("Validating C++ compilation...")
-    compilation_success, compilation_errors = compile_cpp_code(cpp_code, output_file)
+    if target_language == 'cpp':
+        print("Validating C++ compilation...")
+        compilation_success, compilation_errors = compile_cpp_code(converted_code, output_path)
+        
+        if not compilation_success:
+            print("Compilation validation failed. Not saving invalid C++ code.")
+            print("Please review the compilation errors above.")
+            sys.exit(1)
     
-    if not compilation_success:
-        print("Compilation validation failed. Not saving invalid C++ code.")
-        print("Please review the compilation errors above.")
-        sys.exit(1)
-    
-    # Step 6: Write output file (only if compilation succeeded)
-    input_path = Path(python_file)
-    output_file = input_path.stem + ".cpp"
-    if write_cpp_file(cpp_code, output_file):
-        print(f"Translation complete! Output saved to: {output_file}")
+    final_output_path = get_output_path(python_file, target_language, output_path)
+    if write_cpp_file(converted_code, final_output_path):
+        print(f"Translation complete! Output saved to: {final_output_path}")
     else:
         print("Failed to write output file.")
         sys.exit(1)
