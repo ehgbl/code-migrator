@@ -45,6 +45,7 @@ def read_python_file(input_file):
             return input_file.read()
     except FileNotFoundError:
         print(f"Error: File '{file}' not found")
+        print(f"Error: File '{file}' not found")
         return None
     except Exception as e:
         print(f"Error reading file: {e}")
@@ -185,6 +186,8 @@ def compile_cpp_code(cpp_code, output_file):
 
 def main():
     if len(sys.argv) < 2:
+        print("Usage: python main.py <python_file> [context]")
+        print("Example: python main.py my_script.py 'This is a simple calculator'")
         print("Usage: python main.py <python_file> [context]")
         print("Example: python main.py my_script.py 'This is a simple calculator'")
         sys.exit(1)
